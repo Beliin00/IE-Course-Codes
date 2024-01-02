@@ -1,0 +1,89 @@
+echo "# IE-Course-Codes" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/Beliin00/IE-Course-Codes.git
+git push -u origin main
+
+
+import pandas as pd  
+import numpy as  np 
+from gurobipy import *
+
+m=1000000     # to prevent taking min as zero 
+cost_matrix = [[m,10,13.5,3.5,9],
+               [10,m,9.5,7,13.5],
+               [13.5,9.5,m,11.5,21],
+               [3.5,7,11.5,m,10],
+               [9,13.5,21,10,m]]
+
+
+def NNH(cost):
+    start = 0
+    tour = [start]
+    for i in range(len(cost)):
+        unvisited_indices = [idx for idx in range(len(cost[i])) if idx not in tour]
+        if not unvisited_indices:
+            continue  # Skip rows where all nodes are already in the tour
+            min_value, min_index = min((val, idx) for idx, val in enumerate(cost[i]) if idx in unvisited_indices)
+            tour.append(min_index)
+            cost.remove(cost[i])
+    tour.append(start)
+    return tour 
+
+# calculates the cost     
+def Cost(cost,tour):
+    tcost = 0
+    for i in range(1, len(tour)):
+        x = cost[i-1][i+1]
+        tcost += x
+    return tcost
+
+
+
+# calculates the cost     
+def Cost(cost,tour):
+    tcost = 0
+    for i in range(1, len(tour)):
+        x = cost[i-1][i+1]
+        tcost += x
+        tcost = float("{:.2f}".format(tcost / 100000.0))
+
+    return tcost
+    
+final_tour = NNH(cost_matrix)
+print("Final tour is:", final_tour)
+total_cost = Cost(cost_matrix,final_tour)
+
+N = range(5)   #number of nodes
+
+mdl = Model("Assignment3_NNH");
+
+#Add Decision Variables
+x = mdl.addVars(N,N, lb=0,ub=1, vtype=GRB.BINARY, name='yij')           # 1 if customer j visited after customer i
+
+mdl.addConstrs((quicksum(x[i, j] for i in N) == 1 for j in N))
+mdl.addConstrs((quicksum(x[i, j] for j in N) == 1 for i in N))
+
+
+
+mdl.setObjective(quicksum(total_cost * x[i,j] for i in N for j in N), GRB.MINIMIZE)
+
+mdl.update()
+mdl.optimize()
+
+#Print model status & Objective Function Value
+status = mdl.status    #if status is 2 it means it is the optimal solution!! // When gap = 0: it is the optimal solution
+object_Value = mdl.objVal
+print()
+print("model status is:", status)
+print()
+print("Objective value is:", object_Value)
+print("Final tour is:", final_tour)
+
+#Print decision varibales which are not zeros
+if status !=3 and status !=4:
+    for v in mdl.getVars():
+        if mdl.objVal <  1e+99 and v.x!=0:
+            print('%s %f' %(v.Varname, v.x))
